@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asiakas</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/dt-1.10.20/datatables.min.css"/>
+<script type="text/javascript" src="https://cdn.datatables.net/v/dt/dt-1.10.20/datatables.min.js"></script>
+<script>
+    
+    $(document).ready(function(){
+        var os = "https://localhost:3002/haku";
+        var table = $("#dataTable").DataTable({
+            
+            ajax: {
+                url: "http://127.0.0.1:3002/haku",
+                type: "GET",
+                dataSrc: ""
+            },
+            columns: [
+                {"data": "AVAIN", "title": "AVAIN"},
+                {"data": "NIMI", "title": "NIMI"},
+                {"data": "OSOITE", "title": "OSOITE"},
+                {"data": "POSTINRO", "title": "POSTINRO"},
+                {"data": "POSTITMP", "title": "POSTITMP"},
+                {"data": "LUONTIPVM", "title": "LUONTIPVM"},
+                {"data": "ASTY_AVAIN", "title": "ASTY_AVAIN"},
+                {"defaultContent": "<button id='poista'>Poista</button>"},
+                {"defaultContent": "<button id='muuta'>Muuta</button>"}
+
+            ]
+        });
+        
+        $.get("http://127.0.0.1:3002/tyypit/", function(data) {
+            $.each(data, function(key, value){
+                $("#asty").append($("<option ></option>").attr("value", value.Avain).text(value.Avain + 
+                ": " + value.Selite + " (" + value.Lyhenne + ")"));
+                $("#dAsty").append($("<option></option>").attr("value", value.Avain).text(value.Avain + 
+                ": " + value.Selite + " (" + value.Lyhenne + ")"));
+                $("#mDasty").append($("<option></option>").attr("value", value.Avain).text(value.Avain + 
+                ": " + value.Selite + " (" + value.Lyhenne + ")"));
+            })
+            
+            $("#dialog").dialog({
+                autoOpen: false,
+                resize: "auto",
+                display: "block",
+                buttons : {
+                    Tallenna : function() {
+                        /*if ($("#dNimi").val().length > 0 && $("#dOsoite").val().length > 0
+                        && $("#postinro").val().length == 5 && $("#postitmp").val().length > 0
+                        && $("#dAsty").val().length > 0) {
+                            console.log($("#form").serialize());
+                            $.ajax({
+                                type: "POST",
+                                url: "http://127.0.0.1:3002/lisaa?",
+                                data: $("#form").serialize(),
+                                success: function(data) {
+                                    console.log("lisättiin onnistuneesti.");
+                                    
+                                },
+                                error: function() {
+                                    console.log("ei onnistunut");
+                                }
+                            })
+                            $("#dialog").dialog("close");
+                            table.page("last").draw("page");
+                            fetch();
+                        } else {
+                            alert("tarkista kentät");
+                        }*/
+                        $.ajax({
+                                type: "POST",
+                                url: "http://127.0.0.1:3002/lisaa?",
+                                data: $("#form").serialize(),
+                                success: function(data) {
+                                    console.log("lisättiin onnistuneesti.");
+                                    $("#dialog").dialog("close");
+                                    table.page("last").draw("page");
+                                    fetch();
+                                },
+                                error: function(data) {
+                                    console.log(data.responseText);
+                                    alert("ei onnistunut " + data.responseText);
+                                }
+                                
+                                
+                            })
+                    },
+
+                    Poistu: function() {
+                        $("#dialog").dialog("close");
+                    }
+                }
+                
+            });
+            $("#dialogLink").on("click", function(event){
+                event.preventDefault();
+                $("#dialog").dialog("open");
+                
+            })
+            $(".nav").css("display", "block");
+            
+        });
+
+        $("#hae").on("click", function(){
+            os = "http://127.0.0.1:3002/haku?" 
+            var nimi = $("#nimi").val();
+            var osoite = $("#osoite").val();
+            var asty = $("#asty").val();
+            if (nimi.length > 0) {
+                os += "nimi=" + nimi +"&";
+            }
+            if (osoite.length > 0) {
+                os += "osoite=" + osoite + "&";
+            }
+            
+            if (asty > 0) {
+                os += "asty_avain=" + $("#asty").val() + "&";
+            }
+            table.ajax.url(os).load();
+            
+            
+            
+        });
+        
+        
+        $("#dataTable").on('click', '#poista', function(){
+            var data = table.row($(this).parents('tr')).data();
+            var poista = "http://127.0.0.1:3002/poista?avain=" + data.AVAIN;
+            $.ajax ({
+                type: "DELETE",
+                url: poista,
+                success: function(response) {
+                    console.log(response)
+                } 
+            })
+            
+            fetch();
+        });
+        $("#muutaDialog").dialog({
+            autoOpen: false,
+            resize: "auto",
+            display: "block",
+            
+            buttons : {
+                Tallenna : function() {
+                    $.ajax({
+                        type: "PUT",
+                        url: "http://127.0.0.1:3002/Asiakas/" + $(this).data('avain')
+                            + "/",
+                        data: $("#muutaForm").serialize(),
+                        success: function(data) {
+                            $("#muutaDialog").dialog("close");
+                            fetch();
+                        },
+                        error: function(data) {
+                            console.log($("#muutaForm").serialize())
+                            console.log("Ei onnistunut: " + data.responseText);
+                        }
+                    })
+                },
+
+                Peruuta : function() {
+                    $("#muutaDialog").dialog("close");
+                }
+            }
+        })
+        $("#dataTable").on('click', '#muuta', function(){
+            var d = table.row($(this).parents('tr')).data();
+            $.ajax({
+                type: 'GET',
+                url: 'http://127.0.0.1:3002/Asiakas/' + d.AVAIN,
+                success : function(data, success) {
+                    var datum = data[0];                    
+                    $("#mNimi").val(datum.NIMI);
+                    $("#mOsoite").val(datum.OSOITE);
+                    $("#mPostinro").val(datum.POSTINRO);
+                    $("#mPostitmp").val(datum.POSTITMP);
+                },
+                error :function(data, success) {
+                    console.log(error);
+                }
+            });
+            $("#muutaDialog").data("avain", d.AVAIN);
+            $("#muutaDialog").dialog("open");
+        });
+        
+        $("#paivita").on("click", function(){
+            os = "http://127.0.0.1:3002/haku";
+            table.ajax.url(os).load();
+            
+            
+        });
+        function fetch() {          
+            setTimeout(function() {table.ajax.reload(null, false)}, 400);
+        }
+        
+        
+    });
+</script>
+<style>
+body {
+    margin: 0;
+}
+.nav {
+    background-color: black;
+    overflow: hidden;
+    display: none;
+}
+.nav a {
+    float: right;
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+    font-size: 17px;
+}
+.nav a:hover{
+    color:black;
+    background-color: #ddd;
+}
+.nav a.active {
+    background-color: tomato;
+    color: black;
+}
+#asty {
+    background-color: #ddd;
+    float:left;
+    padding: 6px;
+    border: none;
+    margin-top: 8px;
+    margin-right: 16px;
+    font-size: 17px;
+}
+.nav input[type=text] {
+    background-color: #ddd;
+    float: left;
+    padding: 6px;
+    border: none;
+    margin-top: 8px;
+    margin-right: 16px;
+    font-size: 17px;
+}
+button {
+    background: #ddd;
+    padding: 6px 10px;
+    margin-top: 8px;
+    margin-right: 16px;
+    font-size: 17px;
+    border: none;
+
+}
+#dialog {
+    display: none;
+}
+</style>
+</head>
+<body>
+    <div id="muutaDialog" title="Muuta tietoja">
+        <form id="muutaForm" action="http://127.0.0.1:3002/Asiakas/" method="PUT">
+            <fieldset>
+                <select id="mDasty" name="asty_avain">
+                    <option value="">Valitse asiakastyyppi</option>
+                </select>
+                <input type=text id="mNimi" name="nimi" placeholder="Nimi:">
+                <input type="text" id="mOsoite" name="osoite" placeholder ="Osoite:">
+                <input type="text" id="mPostinro" name="postinro" placeholder="Postinumero:">
+                <input type="text" id="mPostitmp" name="postitmp" placeholder="Postitoimipaikka:">
+            </fieldset>
+        </form>
+    </div>
+    <div id="dialog" title="Lisää uusi asiakas">
+        <form id="form" action="http://127.0.0.1:3002/lisaa?" method="POST">
+            <fieldset>
+                <select id="dAsty" name="asty_avain">
+                    <option value="">Valitse asiakastyyppi</option>
+                </select>
+                <input type=text id="dNimi" name="nimi" placeholder="Nimi:">
+                <input type="text" id="dOsoite" name="osoite" placeholder ="Osoite:">
+                <input type="text" id="postinro" name="postinro" placeholder="Postinumero:">
+                <input type="text" id="postitmp" name="postitmp" placeholder="Postitoimipaikka:">
+            </fieldset>
+        </form>
+    </div>
+    <div class="nav">
+        <select id="asty">
+            <option value="">Valitse asiakastyyppi</option>
+        </select>
+        <input type="text" id="nimi" name="nimi" placeholder="Nimi:">
+        <input type="text" id="osoite" name="osoite" placeholder="Osoite:">
+        <button type="button" id="hae">Hae</button>  
+        <button type="button" id="paivita"><i class="fa fa-refresh"></i></button>
+        <a id="dialogLink" href="">Lisää Asiakas</a>      
+    </div><br>
+
+    <table id="dataTable"></table>
+
+    </div>
+
+    <form action="http://127.0.0.1:3002/logout">
+        <button type="submit">Poistu</button>
+    </form>
+</body>
+</html>
